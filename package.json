@@ -1,0 +1,41 @@
+{
+  "name": "vanta-erp-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VANTA ERP - Operations Intelligence Platform (Mini ERP + CRM)",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"API,WEB\" -c \"green.bold,cyan.bold\" \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run dev --workspace=@vanta/api",
+    "dev:web": "npm run dev --workspace=@vanta/web",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspace=@vanta/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:push": "npm run db:push --workspace=@vanta/api",
+    "db:seed": "npm run db:seed --workspace=@vanta/api",
+    "db:studio": "npm run db:studio --workspace=@vanta/api"
+  },
+  "keywords": [
+    "erp",
+    "crm",
+    "operations",
+    "inventory",
+    "sales-challan",
+    "prisma",
+    "express",
+    "react",
+    "typescript"
+  ],
+  "author": "VANTA Operations Engineering",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "prettier": "^3.5.1",
+    "typescript": "^5.7.3"
+  }
+}
