@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "vercel-build": "tsc",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
