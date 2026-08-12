@@ -123,9 +123,19 @@ export class InvoiceService {
     }
 
     if (challan.invoice) {
-      throw new ConflictError(
-        `Invoice '${challan.invoice.invoiceNumber}' has already been generated for this challan.`
-      );
+      // Idempotent recovery: Return existing tax invoice
+      const existingInvoice = await prisma.invoice.findUnique({
+        where: { id: challan.invoice.id },
+        include: {
+          customer: true,
+          challan: {
+            include: {
+              items: true
+            }
+          }
+        }
+      });
+      return existingInvoice as unknown as InvoiceDto;
     }
 
     const subTotal = challan.totalAmount || 0;

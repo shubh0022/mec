@@ -67,10 +67,14 @@ export const InvoicesPage: React.FC = () => {
     mutationFn: (data: { challanId: string; taxRate: number; notes?: string }) =>
       invoicesApi.generateInvoice(data),
     onSuccess: (res) => {
-      success(`Tax invoice ${res.data?.invoiceNumber} generated successfully`);
+      success(`Tax invoice ${res.data?.invoiceNumber} is ready`);
       setIsGenerateModalOpen(false);
       setSelectedChallanId("");
+      if (res.data) {
+        setSelectedInvoice(res.data);
+      }
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["confirmedChallans"] });
     },
     onError: (err: any) => {
       toastError(err.message || "Failed to generate invoice");
@@ -428,10 +432,41 @@ export const InvoicesPage: React.FC = () => {
                 <option value="">-- Choose confirmed challan --</option>
                 {confirmedChallans.map((ch) => (
                   <option key={ch.id} value={ch.id}>
-                    {ch.challanNumber} • {ch.customer?.customerName} • ₹ {(ch.totalAmount || 0).toLocaleString("en-IN")}
+                    {ch.challanNumber} • {ch.customer?.customerName} • ₹ {(ch.totalAmount || 0).toLocaleString("en-IN")}{ch.invoice ? ` [Already Invoiced: ${ch.invoice.invoiceNumber}]` : ""}
                   </option>
                 ))}
               </select>
+
+              {(() => {
+                const selectedChallan = confirmedChallans.find((c) => c.id === selectedChallanId);
+                if (selectedChallan?.invoice) {
+                  return (
+                    <div className="mt-2.5 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+                      <span>
+                        Tax invoice <strong>{selectedChallan.invoice.invoiceNumber}</strong> is already issued for this challan.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsGenerateModalOpen(false);
+                          const matched = invoices.find((inv) => inv.id === selectedChallan.invoice?.id || inv.invoiceNumber === selectedChallan.invoice?.invoiceNumber);
+                          if (matched) {
+                            setSelectedInvoice(matched);
+                          } else if (selectedChallan.invoice?.id) {
+                            invoicesApi.getInvoiceById(selectedChallan.invoice.id).then((res) => {
+                              if (res.data) setSelectedInvoice(res.data);
+                            });
+                          }
+                        }}
+                        className="underline font-bold text-amber-950 hover:text-black ml-2 whitespace-nowrap cursor-pointer"
+                      >
+                        View Invoice
+                      </button>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             <div>

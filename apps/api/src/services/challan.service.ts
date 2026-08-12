@@ -78,6 +78,9 @@ export class ChallanService {
           confirmedByUser: {
             select: { id: true, name: true, email: true }
           },
+          invoice: {
+            select: { id: true, invoiceNumber: true, status: true, grandTotal: true, issuedAt: true }
+          },
           items: {
             include: {
               product: {
@@ -105,6 +108,7 @@ export class ChallanService {
       where: { id },
       include: {
         customer: true,
+        invoice: true,
         createdByUser: {
           select: { id: true, name: true, email: true }
         },

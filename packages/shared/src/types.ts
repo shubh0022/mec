@@ -165,6 +165,13 @@ export interface SalesChallanDto {
     email: string;
   } | null;
   confirmedAt?: string | Date | null;
+  invoice?: {
+    id: string;
+    invoiceNumber: string;
+    status: string;
+    grandTotal?: number;
+    issuedAt?: string | Date;
+  } | null;
   createdAt: string | Date;
   updatedAt: string | Date;
 }

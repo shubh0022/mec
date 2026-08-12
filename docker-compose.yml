@@ -8,14 +8,14 @@ services:
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: vanta_erp
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vanta_erp"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
 
   api:
     build:
@@ -25,13 +25,13 @@ services:
     restart: always
     environment:
       NODE_ENV: production
-      PORT: 5000
+      PORT: 5001
       DATABASE_URL: postgresql://postgres:password123@postgres:5432/vanta_erp?schema=public
       JWT_SECRET: vanta_production_secure_jwt_secret_2026
       JWT_EXPIRES_IN: 7d
-      CORS_ORIGIN: http://localhost:80
+      CORS_ORIGIN: "*"
     ports:
-      - "5000:5000"
+      - "5001:5001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,6 +43,7 @@ services:
     container_name: vanta_web
     restart: always
     ports:
+      - "3000:80"
       - "80:80"
     depends_on:
       - api
