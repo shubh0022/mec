@@ -202,7 +202,7 @@ Access the web portal at **http://localhost:5173** and login with any demo accou
 
 Interactive Swagger UI documentation is available at:
 ```
-http://localhost:5000/api/docs
+http://localhost:5001/api-docs
 ```
 
 ### Primary Endpoints:
@@ -222,6 +222,8 @@ http://localhost:5000/api/docs
 - `POST /api/challans` — Create DRAFT sales challan
 - `POST /api/challans/:id/confirm` — **Transactional confirmation & stock deduction**
 - `POST /api/challans/:id/cancel` — Cancel challan & reverse inventory
+- `GET /api/invoices` — Tax invoices with PDF preview & receipt printing
+- `POST /api/invoices/generate` — Generate tax invoice from confirmed challan
 - `GET /api/users` — User administration (Admin only)
 - `GET /api/audit-logs` — Immutable activity logs (Admin only)
 
@@ -231,27 +233,32 @@ http://localhost:5000/api/docs
 
 To launch the complete containerized stack (PostgreSQL + API + Nginx Web SPA):
 ```bash
-docker-compose up --build
+docker-compose up --build -d
 ```
-- Frontend Web: `http://localhost`
-- Backend API: `http://localhost:5000/api`
-- PostgreSQL: `localhost:5432`
+- Frontend Web: `http://localhost` (or `http://localhost:3000`)
+- Backend API: `http://localhost:5001/api`
+- PostgreSQL: `localhost:5433` -> `5432`
 
 ---
 
 ## 10. Production Deployment
 
 ### Frontend (Vercel)
-1. Import repository to Vercel.
-2. Root directory: `apps/web`.
-3. Build command: `npm run build`.
-4. Output directory: `dist`.
-5. Environment variable: `VITE_API_URL=https://your-api-domain.com/api`.
+The repository includes root `vercel.json` and `apps/web/vercel.json` pre-configured for SPA routing and vendor chunk caching.
 
-### Backend (Render / Railway)
-1. Build command: `npm run build --workspace=@vanta/shared && npm run build --workspace=@vanta/api`.
-2. Start command: `node apps/api/dist/server.js`.
-3. Set environment variables:
-   - `DATABASE_URL`: Connection string from Neon / Supabase PostgreSQL.
+1. Import repository to Vercel.
+2. **Framework Preset**: `Vite`
+3. **Root Directory**: `./`
+4. **Build Command**: `npm run build --workspace=@vanta/shared && npm run build --workspace=@vanta/web`
+5. **Output Directory**: `apps/web/dist`
+6. **Environment Variable**: `VITE_API_URL=https://your-api-domain.com/api`
+
+### Backend (Render / Railway / Fly.io / AWS ECS)
+1. **Root Directory**: `./`
+2. **Build Command**: `npm run build --workspace=@vanta/shared && npm run build --workspace=@vanta/api`
+3. **Start Command**: `node apps/api/dist/server.js`
+4. **Environment Variables**:
+   - `DATABASE_URL`: Connection string from Neon / Supabase / AWS RDS PostgreSQL.
    - `JWT_SECRET`: 256-bit cryptographically secure string.
-   - `CORS_ORIGIN`: Your production frontend URL.
+   - `CORS_ORIGIN`: Your production frontend URL (e.g. `https://your-app.vercel.app`).
+
