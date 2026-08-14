@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: vanta-erp-api
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build --workspace=@vanta/shared && npm run build --workspace=@vanta/api
+    startCommand: node apps/api/dist/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vanta-postgres
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        value: "*"
+
+  - type: web
+    name: vanta-erp-web
+    runtime: static
+    plan: free
+    buildCommand: npm install && npm run build --workspace=@vanta/shared && npm run build --workspace=@vanta/web
+    staticPublishPath: ./apps/web/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: vanta-erp-api
+          property: host
+
+databases:
+  - name: vanta-postgres
+    plan: free
+    databaseName: vanta_erp
+    user: vanta_user

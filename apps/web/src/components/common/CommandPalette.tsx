@@ -107,6 +107,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         await switchDemoRole(Role.WAREHOUSE);
         onClose();
       }
+    },
+    {
+      id: "switch-accounts",
+      name: "Switch to Accounts Role (Sarah Connor)",
+      category: "Demo Roles",
+      icon: <Shield className="w-4 h-4 text-[#76B900]" />,
+      action: async () => {
+        await switchDemoRole(Role.ACCOUNTS);
+        onClose();
+      }
     }
   ];
 
