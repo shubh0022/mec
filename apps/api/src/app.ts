@@ -57,10 +57,9 @@ app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // API Routes
 app.use("/api", routes);
-app.use("/", routes);
 
 // Catch-all 404 for unmapped API endpoints
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use("/api/*", (req: Request, res: Response, next: NextFunction) => {
   next(new NotFoundError(`API endpoint '${req.originalUrl}' does not exist`));
 });
 
