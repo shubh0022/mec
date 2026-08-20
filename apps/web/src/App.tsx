@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
@@ -16,7 +16,10 @@ import { InvoicesPage } from "./pages/InvoicesPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { LoginPage } from "./pages/LoginPage";
+import { AuthCallbackPage } from "./pages/AuthCallbackPage";
+import { ForbiddenPage } from "./pages/ForbiddenPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { Role, Permission } from "@vanta/shared";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,19 +30,39 @@ const queryClient = new QueryClient({
   }
 });
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isLoading } = useAuth();
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles?: Role[];
+  requiredPermission?: Permission;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  allowedRoles,
+  requiredPermission
+}) => {
+  const { user, isLoading, can, hasRole } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#070A10] flex items-center justify-center text-white text-xs font-mono">
-        Initializing VANTA Secure Portal...
+      <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center text-white text-xs font-mono">
+        <div className="w-8 h-8 border-2 border-[#76B900] border-t-transparent rounded-full animate-spin mb-3" />
+        <span>Initializing VANTA Secure Portal...</span>
       </div>
     );
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (allowedRoles && !hasRole(...allowedRoles)) {
+    return <Navigate to="/403" replace />;
+  }
+
+  if (requiredPermission && !can(requiredPermission)) {
+    return <Navigate to="/403" replace />;
   }
 
   return <>{children}</>;
@@ -52,8 +75,9 @@ export const App: React.FC = () => {
         <ToastProvider>
           <BrowserRouter>
             <Routes>
-              {/* Public Routes */}
+              {/* Public Authentication Routes */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
               {/* Protected Portal Routes */}
               <Route
@@ -76,11 +100,29 @@ export const App: React.FC = () => {
                 <Route path="invoices" element={<InvoicesPage />} />
                 <Route path="reports/stock" element={<ReportsPage type="stock" />} />
                 <Route path="reports/sales" element={<ReportsPage type="sales" />} />
-                <Route path="users" element={<UsersPage />} />
-                <Route path="roles" element={<UsersPage />} />
+
+                {/* Restricted Admin-only routes */}
+                <Route
+                  path="users"
+                  element={
+                    <ProtectedRoute allowedRoles={[Role.ADMIN]} requiredPermission={Permission.USER_MANAGE}>
+                      <UsersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="roles"
+                  element={
+                    <ProtectedRoute allowedRoles={[Role.ADMIN]} requiredPermission={Permission.ROLE_MANAGE}>
+                      <UsersPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route path="403" element={<ForbiddenPage />} />
               </Route>
 
-              {/* 404 */}
+              {/* 404 Not Found */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </BrowserRouter>

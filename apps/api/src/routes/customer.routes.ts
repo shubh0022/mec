@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { CustomerController } from "../controllers/customer.controller.js";
-import { authenticate, authorize } from "../middlewares/auth.middleware.js";
+import { authenticate, authorize, protectReadOnlyGuest } from "../middlewares/auth.middleware.js";
 import { validateBody, validateQuery } from "../middlewares/validate.middleware.js";
 import {
   CreateCustomerSchema,
@@ -13,18 +13,19 @@ import {
 const router = Router();
 
 router.use(authenticate);
+router.use(protectReadOnlyGuest);
 
-// List and view customers
+// List and view customers: ADMIN, SALES, ACCOUNTS, WAREHOUSE, GUEST
 router.get(
   "/",
-  authorize(Role.ADMIN, Role.SALES, Role.ACCOUNTS, Role.WAREHOUSE),
+  authorize(Role.ADMIN, Role.SALES, Role.ACCOUNTS, Role.WAREHOUSE, Role.GUEST),
   validateQuery(PaginationQuerySchema),
   CustomerController.getCustomers
 );
 
 router.get(
   "/:id",
-  authorize(Role.ADMIN, Role.SALES, Role.ACCOUNTS, Role.WAREHOUSE),
+  authorize(Role.ADMIN, Role.SALES, Role.ACCOUNTS, Role.WAREHOUSE, Role.GUEST),
   CustomerController.getCustomerById
 );
 
@@ -51,7 +52,7 @@ router.delete("/:id", authorize(Role.ADMIN), CustomerController.deleteCustomer);
 router.get("/:id/follow-ups", CustomerController.getFollowUps);
 router.post(
   "/:id/follow-ups",
-  authorize(Role.ADMIN, Role.SALES),
+  authorize(Role.ADMIN, Role.SALES, Role.ACCOUNTS),
   validateBody(CreateFollowUpSchema),
   CustomerController.createFollowUp
 );

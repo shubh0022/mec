@@ -3,9 +3,20 @@ import { Role, CustomerType, CustomerStatus, MovementType, ChallanStatus } from 
 
 export const LoginSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters")
+  password: z.string().min(1, "Password is required")
 });
 export type LoginInput = z.infer<typeof LoginSchema>;
+
+export const GoogleVerifySchema = z.object({
+  credential: z.string().min(1, "Google ID token credential is required")
+});
+export type GoogleVerifyInput = z.infer<typeof GoogleVerifySchema>;
+
+export const GoogleOAuthCallbackSchema = z.object({
+  code: z.string().min(1, "OAuth authorization code is required"),
+  state: z.string().optional()
+});
+export type GoogleOAuthCallbackInput = z.infer<typeof GoogleOAuthCallbackSchema>;
 
 export const CreateUserSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),

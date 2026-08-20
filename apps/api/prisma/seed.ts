@@ -64,7 +64,17 @@ async function main() {
     }
   });
 
-  console.log("👤 Created 4 demo role users (password: password123)");
+  const guestUser = await prisma.user.create({
+    data: {
+      name: "Guest Explorer",
+      email: "guest@vanta.local",
+      passwordHash: null,
+      role: "GUEST",
+      isActive: true
+    }
+  });
+
+  console.log("👤 Created standard users and dedicated guest user");
 
   // 2. Create Warehouses
   const centralWarehouse = await prisma.warehouse.create({

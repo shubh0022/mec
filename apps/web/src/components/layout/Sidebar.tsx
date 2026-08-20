@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           name: "Dashboard",
           path: "/dashboard",
           icon: LayoutDashboard,
-          roles: [Role.ADMIN, Role.SALES, Role.WAREHOUSE, Role.ACCOUNTS]
+          roles: [Role.ADMIN, Role.SALES, Role.WAREHOUSE, Role.ACCOUNTS, Role.GUEST]
         }
       ]
     },
@@ -55,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           name: "Customers",
           path: "/customers",
           icon: Users,
-          roles: [Role.ADMIN, Role.SALES, Role.ACCOUNTS, Role.WAREHOUSE]
+          roles: [Role.ADMIN, Role.SALES, Role.ACCOUNTS, Role.WAREHOUSE, Role.GUEST]
         },
         {
           name: "Follow-ups",
@@ -72,13 +72,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           name: "Products",
           path: "/products",
           icon: Package,
-          roles: [Role.ADMIN, Role.SALES, Role.WAREHOUSE, Role.ACCOUNTS]
+          roles: [Role.ADMIN, Role.SALES, Role.WAREHOUSE, Role.ACCOUNTS, Role.GUEST]
         },
         {
           name: "Stock Movements",
           path: "/stock-movements",
           icon: ArrowLeftRight,
-          roles: [Role.ADMIN, Role.WAREHOUSE, Role.ACCOUNTS, Role.SALES]
+          roles: [Role.ADMIN, Role.WAREHOUSE, Role.ACCOUNTS, Role.SALES, Role.GUEST]
         }
       ]
     },
@@ -89,13 +89,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           name: "Sales Challans",
           path: "/challans",
           icon: FileText,
-          roles: [Role.ADMIN, Role.SALES, Role.ACCOUNTS, Role.WAREHOUSE]
+          roles: [Role.ADMIN, Role.SALES, Role.ACCOUNTS, Role.WAREHOUSE, Role.GUEST]
         },
         {
           name: "Invoices",
           path: "/invoices",
           icon: Receipt,
-          roles: [Role.ADMIN, Role.SALES, Role.ACCOUNTS]
+          roles: [Role.ADMIN, Role.SALES, Role.ACCOUNTS, Role.GUEST]
         }
       ]
     },
@@ -106,13 +106,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           name: "Stock Report",
           path: "/reports/stock",
           icon: BarChart3,
-          roles: [Role.ADMIN, Role.WAREHOUSE, Role.ACCOUNTS]
+          roles: [Role.ADMIN, Role.WAREHOUSE, Role.ACCOUNTS, Role.GUEST]
         },
         {
           name: "Sales Report",
           path: "/reports/sales",
           icon: TrendingUp,
-          roles: [Role.ADMIN, Role.SALES, Role.ACCOUNTS]
+          roles: [Role.ADMIN, Role.SALES, Role.ACCOUNTS, Role.GUEST]
         }
       ]
     },

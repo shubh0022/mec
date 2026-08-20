@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { CommandPalette } from "../common/CommandPalette";
+import { DemoBanner } from "../common/DemoBanner";
 
 export const AppLayout: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -48,6 +49,8 @@ export const AppLayout: React.FC = () => {
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           onOpenMobileMenu={() => setIsMobileOpen(true)}
         />
+
+        <DemoBanner />
 
         <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto">
           <Outlet />

@@ -7,11 +7,16 @@ export interface JwtPayload {
   email: string;
   role: Role;
   name: string;
+  isGuest?: boolean;
 }
 
 export const signJwt = (payload: JwtPayload, options?: SignOptions): string => {
+  const defaultExpiry = payload.isGuest
+    ? env.GUEST_JWT_EXPIRES_IN || "1h"
+    : env.JWT_EXPIRES_IN || "7d";
+
   const opts: SignOptions = {
-    expiresIn: (env.JWT_EXPIRES_IN || "7d") as any,
+    expiresIn: defaultExpiry as any,
     ...options
   };
   return jwt.sign(payload, env.JWT_SECRET, opts);

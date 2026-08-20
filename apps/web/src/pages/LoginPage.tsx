@@ -1,271 +1,444 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation, Link, useSearchParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Shield,
+  Eye,
+  EyeOff,
   ArrowRight,
-  Zap,
-  CheckCircle2,
-  Package,
-  Receipt,
-  Users,
-  Check,
   Sparkles,
-  LockKeyholeOpen
+  Lock,
+  Mail,
+  ShieldCheck,
+  AlertCircle,
+  Activity,
+  Layers,
+  Database,
+  CheckCircle2,
+  X
 } from "lucide-react";
-import { Role } from "@vanta/shared";
+import { LoginSchema, LoginInput } from "@vanta/shared";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { Button } from "../components/common/Button";
 
-interface GuestRoleConfig {
-  role: Role;
-  name: string;
-  badge: string;
-  summary: string;
-  permissions: string[];
-  icon: React.ElementType;
-  accentColor: string;
-  badgeStyle: string;
-}
-
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { demoLogin } = useAuth();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const { user, login, continueWithGoogleOAuth, continueAsGuest } = useAuth();
   const { success, error: toastError } = useToast();
-  const [selectedRole, setSelectedRole] = useState<Role>(Role.ADMIN);
+
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showGuestModal, setShowGuestModal] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
-  const guestRoles: GuestRoleConfig[] = [
-    {
-      role: Role.ADMIN,
-      name: "Administrator",
-      badge: "Full System Access",
-      summary: "Executive authority over all operations, RBAC policies, inventory audits, and system settings.",
-      permissions: ["Full CRUD Operations", "User & RBAC Controls", "Challan Approvals", "Financial Ledgers"],
-      icon: Shield,
-      accentColor: "#76B900",
-      badgeStyle: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
-    },
-    {
-      role: Role.SALES,
-      name: "Sales Officer",
-      badge: "CRM & Pipelines",
-      summary: "Customer relationship database, lead follow-ups, quotation generation, and sales challan creation.",
-      permissions: ["Customer Directory", "Follow-up Tracker", "Quotation & Orders", "Sales Dispatch"],
-      icon: Users,
-      accentColor: "#3B82F6",
-      badgeStyle: "text-blue-400 bg-blue-500/10 border-blue-500/30"
-    },
-    {
-      role: Role.WAREHOUSE,
-      name: "Warehouse Manager",
-      badge: "Inventory & Logistics",
-      summary: "Real-time stock ledger, batch tracking, multi-warehouse auditing, and dispatch fulfillment.",
-      permissions: ["Real-time Stock Ledger", "Warehouse Movement", "Inventory Adjustments", "Dispatch Verification"],
-      icon: Package,
-      accentColor: "#F59E0B",
-      badgeStyle: "text-amber-400 bg-amber-500/10 border-amber-500/30"
-    },
-    {
-      role: Role.ACCOUNTS,
-      name: "Accounts Officer",
-      badge: "Finance & GST",
-      summary: "Tax invoicing, GST compliance calculations, accounts receivable tracking, and revenue analytics.",
-      permissions: ["GST Tax Invoicing", "Payment Reconciliation", "Accounts Ledger", "Revenue Analytics"],
-      icon: Receipt,
-      accentColor: "#A855F7",
-      badgeStyle: "text-purple-400 bg-purple-500/10 border-purple-500/30"
+  const fromPath = (location.state as any)?.from?.pathname || "/dashboard";
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate(fromPath, { replace: true });
     }
-  ];
+  }, [user, navigate, fromPath]);
 
-  const currentRoleConfig = guestRoles.find((r) => r.role === selectedRole) || guestRoles[0];
+  // Handle URL query error parameters
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      setErrorMessage(decodeURIComponent(errorParam));
+    }
+  }, [searchParams]);
 
-  const handleLaunchGuestWorkspace = async (roleToLaunch: Role = selectedRole) => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<LoginInput>({
+    resolver: zodResolver(LoginSchema),
+    defaultValues: {
+      email: "",
+      password: ""
+    }
+  });
+
+  const onSubmit = async (data: LoginInput) => {
+    setErrorMessage(null);
     setIsLoading(true);
-    const targetConfig = guestRoles.find((r) => r.role === roleToLaunch) || currentRoleConfig;
     try {
-      await demoLogin(roleToLaunch);
-      success(`Authenticated as Guest ${targetConfig.name}. Launching workspace...`);
-      navigate("/dashboard");
+      await login(data);
+      success("Authenticated successfully. Welcome back to VANTA ERP.");
+      navigate(fromPath, { replace: true });
     } catch (err: any) {
-      toastError(err.message || "Failed to initialize guest session");
+      const msg = err?.message || "Email or password is incorrect.";
+      setErrorMessage(msg);
+      toastError(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setErrorMessage(null);
+    setIsGoogleLoading(true);
+    try {
+      await continueWithGoogleOAuth();
+    } catch (err: any) {
+      const msg = err?.message || "Google sign-in could not be completed. Please try again.";
+      setErrorMessage(msg);
+      toastError(msg);
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGuestEntry = async () => {
+    setErrorMessage(null);
+    setIsGuestLoading(true);
+    try {
+      await continueAsGuest();
+      setShowGuestModal(false);
+      success("Entered VANTA in Demo Mode. Read-only access enabled.");
+      navigate(fromPath, { replace: true });
+    } catch (err: any) {
+      const msg = err?.message || "Failed to initialize guest demo session. Please try again.";
+      setErrorMessage(msg);
+      toastError(msg);
+    } finally {
+      setIsGuestLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#070A10] text-white flex flex-col justify-center items-center py-10 px-4 sm:px-6 relative overflow-hidden select-none">
-      {/* Ambient background glows */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-[#76B900]/10 blur-[130px] pointer-events-none rounded-full" />
-      <div className="absolute bottom-0 right-1/4 w-[450px] h-[250px] bg-blue-500/5 blur-[120px] pointer-events-none rounded-full" />
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+      {/* Precision ambient background glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-[#76B900]/8 blur-[140px] pointer-events-none rounded-full" />
+      <div className="absolute bottom-0 right-10 w-[500px] h-[300px] bg-[#76B900]/5 blur-[120px] pointer-events-none rounded-full" />
 
-      {/* Brand Header */}
-      <div className="w-full max-w-2xl text-center relative z-10 mb-6">
-        <div className="mx-auto w-12 h-12 rounded-xl bg-[#0E131F] border border-[#76B900]/40 flex items-center justify-center shadow-lg shadow-[#76B900]/10 mb-3.5 ring-4 ring-[#76B900]/5 transition-transform hover:scale-105 duration-300">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#76B900"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-7 h-7"
-          >
-            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-            <polyline points="2 17 12 22 22 17"></polyline>
-            <polyline points="2 12 12 17 22 12"></polyline>
-          </svg>
-        </div>
-
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center justify-center gap-2">
-          <span>VANTA</span>
-          <span className="text-[#76B900] font-light">ERP</span>
-        </h1>
-        <p className="text-xs text-zinc-400 mt-1">
-          Operations Intelligence, Multi-Role ERP & CRM Platform
-        </p>
-      </div>
-
-      {/* Main Unified Guest Portal Card */}
-      <div className="w-full max-w-2xl relative z-10">
-        <div className="bg-[#0E131F] rounded-2xl border border-[#1E293B] shadow-2xl overflow-hidden backdrop-blur-md">
-          
-          {/* Section Header */}
-          <div className="p-6 sm:p-7 border-b border-zinc-800/80 bg-zinc-950/40">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#76B900]/15 text-[#76B900] border border-[#76B900]/30 mb-1.5">
-                  <LockKeyholeOpen className="w-3 h-3" />
-                  <span>Direct Guest Access</span>
-                </div>
-                <h2 className="text-lg font-bold text-white tracking-tight">
-                  Select Guest Persona
-                </h2>
-                <p className="text-xs text-zinc-400">
-                  Choose an executive role to explore permissions, live workflows, and data access.
-                </p>
+      {/* Main 2-Column Responsive Container */}
+      <div className="w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
+        
+        {/* Left Column: Brand & Context (Desktop Focused) */}
+        <div className="lg:col-span-6 flex flex-col justify-center space-y-6 text-left">
+          {/* Logo Mark */}
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-[#111111] border border-[#76B900]/40 flex items-center justify-center shadow-lg shadow-[#76B900]/10 ring-2 ring-[#76B900]/10">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#76B900"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-6 h-6"
+              >
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+            </div>
+            <div>
+              <div className="flex items-baseline tracking-tight">
+                <span className="text-2xl font-extrabold text-white">VANTA</span>
+                <span className="ml-1.5 text-xs font-semibold text-[#76B900] tracking-widest uppercase">ERP</span>
               </div>
-
-              <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-zinc-500 font-mono">
-                <Sparkles className="w-3.5 h-3.5 text-[#76B900]" />
-                <span>No password required</span>
-              </div>
+              <p className="text-[11px] text-zinc-400 font-medium">Operations Intelligence</p>
             </div>
           </div>
 
-          {/* Role Selection Grid */}
-          <div className="p-6 sm:p-7 space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {guestRoles.map((roleConfig) => {
-                const Icon = roleConfig.icon;
-                const isSelected = selectedRole === roleConfig.role;
+          {/* Value Proposition */}
+          <div className="space-y-3">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+              Manage customers, inventory and sales from one workspace.
+            </h1>
+            <p className="text-sm text-zinc-400 leading-relaxed max-w-lg">
+              Enterprise-grade operations ledger, real-time multi-warehouse inventory auditing, and role-based operational workflows.
+            </p>
+          </div>
 
-                return (
-                  <div
-                    key={roleConfig.role}
-                    onClick={() => setSelectedRole(roleConfig.role)}
-                    onDoubleClick={() => handleLaunchGuestWorkspace(roleConfig.role)}
-                    className={`relative p-3.5 rounded-xl cursor-pointer transition-all duration-200 border text-left flex flex-col justify-between ${
-                      isSelected
-                        ? "bg-[#162033] border-[#76B900] shadow-md shadow-[#76B900]/10 ring-1 ring-[#76B900]/40"
-                        : "bg-[#111726]/80 border-zinc-800 hover:border-zinc-700 hover:bg-[#141C2E]"
-                    }`}
-                  >
-                    <div>
-                      {/* Top Row: Icon, Title, Badge & Check */}
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                              isSelected
-                                ? "bg-[#76B900]/20 text-[#76B900] border border-[#76B900]/50"
-                                : "bg-zinc-900 text-zinc-400 border border-zinc-800"
-                            }`}
-                          >
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                              <span>{roleConfig.name}</span>
-                            </div>
-                            <div className="text-[10px] text-zinc-400 font-medium">
-                              {roleConfig.role}
-                            </div>
-                          </div>
-                        </div>
+          {/* Technical Trust Points (Hidden on small mobile) */}
+          <div className="hidden sm:grid grid-cols-2 gap-3 pt-2">
+            <div className="p-3 rounded-xl bg-[#121212]/90 border border-zinc-800/90 flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-[#76B900] shrink-0 mt-0.5" />
+              <div>
+                <div className="text-xs font-bold text-white">Strict RBAC Policies</div>
+                <div className="text-[10px] text-zinc-400">Least-privilege authorization</div>
+              </div>
+            </div>
 
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${roleConfig.badgeStyle}`}
-                          >
-                            {roleConfig.badge}
-                          </span>
-                          {isSelected && (
-                            <div className="w-4 h-4 rounded-full bg-[#76B900] text-black flex items-center justify-center">
-                              <Check className="w-3 h-3 stroke-[3]" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
+            <div className="p-3 rounded-xl bg-[#121212]/90 border border-zinc-800/90 flex items-start gap-2.5">
+              <Activity className="w-4 h-4 text-[#76B900] shrink-0 mt-0.5" />
+              <div>
+                <div className="text-xs font-bold text-white">99.99% Ledger Uptime</div>
+                <div className="text-[10px] text-zinc-400">Atomic inventory locking</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                      {/* Description */}
-                      <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed">
-                        {roleConfig.summary}
-                      </p>
-                    </div>
+        {/* Right Column: Authentication Card */}
+        <div className="lg:col-span-6 w-full max-w-md mx-auto">
+          <div className="bg-[#111111] rounded-2xl border border-zinc-800 shadow-2xl p-6 sm:p-8 backdrop-blur-md relative">
+            
+            {/* Card Header */}
+            <div className="mb-6 text-left">
+              <h2 className="text-xl font-bold text-white tracking-tight">Welcome back</h2>
+              <p className="text-xs text-zinc-400 mt-1">
+                Sign in to continue to your workspace
+              </p>
+            </div>
+
+            {/* Error Message Display */}
+            {errorMessage && (
+              <div
+                role="alert"
+                aria-live="polite"
+                className="mb-5 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-start gap-2.5"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Email + Password Form */}
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left" noValidate>
+              {/* Email Field */}
+              <div>
+                <label htmlFor="email" className="block text-xs font-medium text-zinc-300 mb-1.5">
+                  Email
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
+                    <Mail className="w-4 h-4" />
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Selected Persona Summary Bar */}
-            <div className="p-3.5 rounded-xl bg-zinc-950/70 border border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-[#76B900] animate-pulse" />
-                <span className="text-zinc-400">
-                  Ready to enter as: <strong className="text-white font-semibold">{currentRoleConfig.name}</strong> ({currentRoleConfig.role})
-                </span>
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="name@company.com"
+                    aria-describedby={errors.email ? "email-error" : undefined}
+                    aria-invalid={!!errors.email}
+                    className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl bg-zinc-900/90 border border-zinc-700/80 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#76B900] focus:border-[#76B900] transition-colors"
+                    {...register("email")}
+                  />
+                </div>
+                {errors.email && (
+                  <p id="email-error" className="text-red-400 text-[11px] mt-1 font-medium">
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {currentRoleConfig.permissions.slice(0, 2).map((perm, idx) => (
-                  <span
-                    key={idx}
-                    className="text-[10px] px-2 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-800"
+
+              {/* Password Field */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="password" className="block text-xs font-medium text-zinc-300">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
+                    className="text-[11px] text-zinc-400 hover:text-[#76B900] transition-colors"
                   >
-                    ✓ {perm}
-                  </span>
-                ))}
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="••••••••••••"
+                    aria-describedby={errors.password ? "password-error" : undefined}
+                    aria-invalid={!!errors.password}
+                    className="w-full text-xs pl-9 pr-10 py-2.5 rounded-xl bg-zinc-900/90 border border-zinc-700/80 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-[#76B900] focus:border-[#76B900] transition-colors"
+                    {...register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-200 transition-colors focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p id="password-error" className="text-red-400 text-[11px] mt-1 font-medium">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Submit Action */}
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full py-2.5 text-xs font-bold tracking-wide mt-2"
+                isLoading={isLoading}
+                disabled={isLoading || isGoogleLoading || isGuestLoading}
+                rightIcon={!isLoading ? <ArrowRight className="w-4 h-4" /> : undefined}
+              >
+                {isLoading ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
+
+            {/* Divider */}
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-zinc-800" />
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase tracking-wider">
+                <span className="bg-[#111111] px-3 text-zinc-500 font-bold">OR</span>
               </div>
             </div>
 
-            {/* Unified Single Action Launch Button */}
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => handleLaunchGuestWorkspace(selectedRole)}
-              disabled={isLoading}
-              isLoading={isLoading}
-              className="w-full py-3.5 text-xs sm:text-sm font-bold tracking-wide shadow-lg shadow-[#76B900]/20 flex items-center justify-center gap-2 group transition-all"
+            {/* Alternative Authentication Paths */}
+            <div className="space-y-2.5">
+              {/* Real Google OAuth Button */}
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isLoading || isGoogleLoading || isGuestLoading}
+                className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-100 text-zinc-900 text-xs font-semibold flex items-center justify-center gap-2.5 shadow-sm transition-all duration-150 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-zinc-400"
+              >
+                {isGoogleLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin" />
+                    <span>Connecting to Google...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                      />
+                    </svg>
+                    <span>Continue with Google</span>
+                  </>
+                )}
+              </button>
+
+              {/* Continue as Guest Button */}
+              <button
+                type="button"
+                onClick={() => setShowGuestModal(true)}
+                disabled={isLoading || isGoogleLoading || isGuestLoading}
+                className="w-full py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-semibold flex items-center justify-center gap-2 transition-all duration-150 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[#76B900]"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#76B900]" />
+                <span>Continue as Guest</span>
+              </button>
+            </div>
+
+            {/* Footer / Privacy notice */}
+            <div className="mt-6 pt-4 border-t border-zinc-800/80 flex items-center justify-between text-[10px] text-zinc-500">
+              <span>VANTA ERP v1.0.0</span>
+              <span>Encrypted Session • TLS 1.3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Guest Demo Confirmation Modal */}
+      {showGuestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="guest-modal-title"
+            className="bg-[#111111] rounded-2xl border border-zinc-800 shadow-2xl max-w-sm w-full p-6 text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[#76B900]/15 border border-[#76B900]/30 flex items-center justify-center text-[#76B900] mb-4">
+              <Sparkles className="w-5 h-5" />
+            </div>
+
+            <h3 id="guest-modal-title" className="text-base font-bold text-white mb-1.5">
+              Explore VANTA in demo mode?
+            </h3>
+            <p className="text-xs text-zinc-400 leading-relaxed mb-6">
+              Demo access is read-only and does not modify production data. You will be able to explore live dashboards, inventory reports, and catalog records in an isolated sandbox.
+            </p>
+
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowGuestModal(false)}
+                className="flex-1 text-xs"
+                disabled={isGuestLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleGuestEntry}
+                isLoading={isGuestLoading}
+                className="flex-1 text-xs font-bold"
+              >
+                Enter Demo
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="forgot-modal-title"
+            className="bg-[#111111] rounded-2xl border border-zinc-800 shadow-2xl max-w-sm w-full p-6 text-left relative"
+          >
+            <button
+              onClick={() => setShowForgotModal(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+              aria-label="Close dialog"
             >
-              <Zap className="w-4 h-4 text-black group-hover:scale-110 transition-transform" />
-              <span>Launch Workspace as {currentRoleConfig.name}</span>
-              <ArrowRight className="w-4 h-4 text-black group-hover:translate-x-1 transition-transform" />
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-300 mb-4">
+              <Lock className="w-5 h-5" />
+            </div>
+
+            <h3 id="forgot-modal-title" className="text-base font-bold text-white mb-1.5">
+              Password Reset
+            </h3>
+            <p className="text-xs text-zinc-400 leading-relaxed mb-6">
+              In accordance with VANTA ERP security policy, credentials must be reset by your organization&apos;s System Administrator. Please contact your administrator or IT helpdesk.
+            </p>
+
+            <Button
+              variant="outline"
+              onClick={() => setShowForgotModal(false)}
+              className="w-full text-xs font-semibold"
+            >
+              Understood
             </Button>
           </div>
-
-          {/* Footer Strip */}
-          <div className="px-6 py-3.5 bg-zinc-950 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#76B900]" />
-              <span>Live Demonstration Sandbox • Switch roles anytime from topbar</span>
-            </div>
-            <div className="font-mono text-zinc-500 text-[10px]">
-              v1.0.0
-            </div>
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

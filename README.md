@@ -17,7 +17,11 @@
 - **Reference UI Match**: Faithfully replicates the provided reference layout — dark slate sidebar (`#0B0F17`), high-contrast crisp content canvas, 4 KPI cards with circular green icon badges, smooth green gradient Spline Sales Overview chart, Recent Sales Challans table with status badges, Low Stock Alert table with red quantity indicators, and Follow-ups Due ledger.
 - **Two Brand Colors**: Near Black (`#0A0A0A` / `#0B0F17`) and NVIDIA-style Green (`#76B900`). Neutral whites, grays, and functional contrast surfaces are strictly used for hierarchy and accessibility.
 - **Fast Keyboard UX**: Integrated command palette (`⌘K` / `Ctrl+K`) for instant navigation and action creation.
-- **Demo RBAC Switcher**: Instant header persona switcher enabling reviewers to test `ADMIN`, `SALES`, `WAREHOUSE`, and `ACCOUNTS` privileges with 1 click.
+- **Production Authentication**: Three dedicated authentication paths:
+  1. **Email + Password**: Full credential validation with bcrypt hashing, generic rejection responses, and accessible show/hide password controls.
+  2. **Continue with Google**: Server-verified OAuth 2.0 / OIDC identity validation. Implements Option A enterprise policy (unregistered accounts are blocked; existing users retain their assigned server-side role).
+  3. **Continue as Guest**: Dedicated `GUEST` identity with short-lived session and strict read-only sandbox protections preventing any production data mutations.
+
 
 ---
 

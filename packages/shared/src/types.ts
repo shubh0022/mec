@@ -22,6 +22,9 @@ export interface UserDto {
   email: string;
   role: Role;
   isActive: boolean;
+  avatarUrl?: string | null;
+  googleSubjectId?: string | null;
+  isGuest?: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
@@ -30,6 +33,21 @@ export interface AuthTokens {
   accessToken: string;
   refreshToken?: string;
   user: UserDto;
+}
+
+export interface AuthSessionDto {
+  token: string;
+  user: UserDto;
+  isGuest?: boolean;
+  expiresIn?: string | number;
+}
+
+export interface GoogleVerifiedIdentity {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
+  emailVerified: boolean;
 }
 
 export interface CustomerFollowUpDto {

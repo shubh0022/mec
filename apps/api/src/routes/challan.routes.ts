@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { ChallanController } from "../controllers/challan.controller.js";
-import { authenticate, authorize } from "../middlewares/auth.middleware.js";
+import { authenticate, authorize, protectReadOnlyGuest } from "../middlewares/auth.middleware.js";
 import { validateBody, validateQuery } from "../middlewares/validate.middleware.js";
 import {
   CreateSalesChallanSchema,
@@ -12,6 +12,7 @@ import {
 const router = Router();
 
 router.use(authenticate);
+router.use(protectReadOnlyGuest);
 
 router.get("/", validateQuery(PaginationQuerySchema), ChallanController.getChallans);
 router.get("/:id", ChallanController.getChallanById);

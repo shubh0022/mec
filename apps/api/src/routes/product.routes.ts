@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { ProductController } from "../controllers/product.controller.js";
-import { authenticate, authorize } from "../middlewares/auth.middleware.js";
+import { authenticate, authorize, protectReadOnlyGuest } from "../middlewares/auth.middleware.js";
 import { validateBody, validateQuery } from "../middlewares/validate.middleware.js";
 import { CreateProductSchema, UpdateProductSchema, PaginationQuerySchema, Role } from "@vanta/shared";
 
 const router = Router();
 
 router.use(authenticate);
+router.use(protectReadOnlyGuest);
 
 router.get("/meta/categories", ProductController.getCategories);
 router.get("/meta/warehouses", ProductController.getWarehouses);
